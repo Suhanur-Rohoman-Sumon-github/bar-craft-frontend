@@ -1,103 +1,308 @@
+"use client";
+import { useState, ChangeEvent, FormEvent } from "react";
+import { saveAs } from "file-saver";
 import Image from "next/image";
+import axios from "axios";
 
-export default function Home() {
+type FormData = {
+  licenseNumber: string;
+  name: string;
+  dob: string;
+  address: string;
+  city: string;
+  state: string;
+  zip: string;
+  expiration: string;
+  licenseClass: string;
+  issueDate: string;
+  issueCountry: string;
+};
+
+const BarcodeGenerator = () => {
+  const [formData, setFormData] = useState<FormData>({
+    licenseNumber: "",
+    name: "",
+    dob: "",
+    address: "",
+    city: "",
+    state: "",
+    zip: "",
+    expiration: "",
+    licenseClass: "",
+    issueDate: "",
+    issueCountry: "USA", // Default country set to USA
+  });
+
+  const [barcodeUrl, setBarcodeUrl] = useState<string>("");
+  const [generated, setGenerated] = useState<boolean>(false);
+
+  // Handle input change
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData({
+      ...formData,
+      [name]: value,
+    });
+  };
+
+  // Generate Barcode URL based on form data
+  const generateBarcodeUrl = (): string => {
+    const {
+      licenseNumber,
+      name,
+      dob,
+      address,
+      city,
+      state,
+      zip,
+      expiration,
+      licenseClass,
+      issueDate,
+      issueCountry,
+    } = formData;
+
+    const data = `
+      ANSI 636003080002DL00410260ZM03010008
+      DLDAQC-${licenseNumber}
+      DCSC${name.split(" ")[0]} // First name (First part of Name)
+      DDEN
+      DACA${name.split(" ")[1]} // Last name (Second part of Name)
+      DDFN
+      DAD${name.split(" ")[2] || "UNKNOWN"} // Middle name (optional)
+      DDGN
+      DCAC
+      DCBB
+      DCDNONE
+      DBD${dob}
+      DBB${expiration}
+      DBA${issueDate}
+      DBC1
+      DAU${address}
+      DAYUNK
+      DAG${city} ${state} ${zip}
+      DAI${issueCountry}
+      DAK${licenseClass}
+      DCFA100E64A8
+      DCGUSA
+      DCK${licenseNumber}
+      DDAF
+      DDB${issueDate}
+      DAW${expiration}
+      ZMZMA01
+    `;
+
+    return `https://barcode.tec-it.com/barcode.ashx?data=${encodeURIComponent(
+      data
+    )}&code=PDF417`;
+  };
+
+  // Handle form submission
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    const barcode = generateBarcodeUrl();
+    setBarcodeUrl(barcode);
+    setGenerated(true);
+  };
+
+  // Download barcode as PNG
+  // Download barcode as PNG
+  // Import the saveAs function from file-saver
+
+  // Import the saveAs function from file-saver
+
+  // Ensure file-saver is installed and imported
+
+  // Make sure the file-saver library is installed
+
+ const handleDownload = async () => {
+   try {
+     // Ronnie Winfield's info
+     const licenseNumber = "152-044-581-787";
+     const name = "Ronnie Winfield"; 
+     const dob = "1963-11-11"; // Date of birth
+     const expiration = "2029-11-11"; // Expiration date
+     const issueDate = "2024-01-24"; // Issue date
+     const address = "24158 W Main St Ste 100";
+     const city = "Plainfield";
+     const state = "IL";
+     const zip = "60544";
+     const issueCountry = "USA";
+     const licenseClass = "A"; // optional, based on your system
+
+     const plan = {
+       licenseNumber,
+       name,
+       dob,
+       expiration,
+       issueDate,
+       address,
+       city,
+       state,
+       zip,
+       issueCountry,
+       licenseClass,
+     };
+
+     const response = await axios.post(
+       "https://pat-haven.vercel.app/api/v1/qr/generate-barcode",
+       plan,
+       {
+         headers: {
+           "Content-Type": "application/json",
+         },
+         responseType: "blob",
+       }
+     );
+
+     const contentType = response.headers["content-type"];
+     if (!contentType?.includes("image")) {
+       console.error("Response is not an image:", response.data);
+       throw new Error("Expected an image, but received something else");
+     }
+
+     saveAs(response.data, "ronnie_driver_license_barcode.png");
+   } catch (error) {
+     console.error("Failed to download image", error);
+   }
+ };
+
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className="p-6 max-w-3xl mx-auto bg-white rounded-lg shadow-xl space-y-6">
+      <h2 className="text-3xl font-semibold text-center text-gray-900">
+        U.S. Drivers License Barcode Generator
+      </h2>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+      {/* Form to gather user's driver license data */}
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <input
+            type="text"
+            name="licenseNumber"
+            placeholder="License Number"
+            value={formData.licenseNumber}
+            onChange={handleChange}
+            className="w-full p-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <input
+            type="text"
+            name="name"
+            placeholder="Full Name"
+            value={formData.name}
+            onChange={handleChange}
+            className="w-full p-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <input
+            type="text"
+            name="dob"
+            placeholder="Date of Birth (MMDDYYYY)"
+            value={formData.dob}
+            onChange={handleChange}
+            className="w-full p-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
+          <input
+            type="text"
+            name="address"
+            placeholder="Address"
+            value={formData.address}
+            onChange={handleChange}
+            className="w-full p-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <input
+            type="text"
+            name="city"
+            placeholder="City"
+            value={formData.city}
+            onChange={handleChange}
+            className="w-full p-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
-          Go to nextjs.org →
-        </a>
-      </footer>
+          <input
+            type="text"
+            name="state"
+            placeholder="State"
+            value={formData.state}
+            onChange={handleChange}
+            className="w-full p-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <input
+            type="text"
+            name="zip"
+            placeholder="ZIP Code"
+            value={formData.zip}
+            onChange={handleChange}
+            className="w-full p-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <input
+            type="text"
+            name="expiration"
+            placeholder="Expiration Date (MMDDYYYY)"
+            value={formData.expiration}
+            onChange={handleChange}
+            className="w-full p-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <input
+            type="text"
+            name="licenseClass"
+            placeholder="License Class"
+            value={formData.licenseClass}
+            onChange={handleChange}
+            className="w-full p-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <input
+            type="text"
+            name="issueDate"
+            placeholder="Issue Date (MMDDYYYY)"
+            value={formData.issueDate}
+            onChange={handleChange}
+            className="w-full p-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <button
+          type="submit"
+          className="w-full py-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          Generate Barcode
+        </button>
+      </form>
+
+      {/* Display Barcode */}
+      {generated && (
+        <div className="text-center mt-8">
+          <div className="flex justify-center">
+            <Image
+              width={400}
+              height={200}
+              className="max-w-full max-h-full"
+              alt="U.S. Driver's License Barcode"
+              src={barcodeUrl}
+            />
+          </div>
+          {/* Download Button */}
+          <div className="mt-6">
+            <button
+              onClick={handleDownload}
+              className="px-8 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+            >
+              Download Barcode as PNG
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
-}
+};
+
+export default BarcodeGenerator;
